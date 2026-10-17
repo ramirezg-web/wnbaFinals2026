@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WNBA Finals Series Forecaster</title>
+<meta name="description" content="A small, transparent model that turns 2026 WNBA playoff scores into team ratings and an exact best-of-7 series forecast. Runs in your browser.">
+<style>
+  :root {
+    --bg: #f7f5f2; --surface: #ffffff; --text: #1d2430; --muted: #5a6572; --line: #e2ddd5;
+    --a: #0d5c63; --a-soft: #dff0f1; --b: #b4531f; --b-soft: #fbece2; --ink: #ffffff; --focus: #1d4ed8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12171c; --surface: #1b2229; --text: #e7ebef; --muted: #a0abb5; --line: #2d3740;
+      --a: #5cc3cc; --a-soft: #153238; --b: #f0a173; --b-soft: #2d2018; --ink: #0b1a1c; --focus: #8ab4ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 800px; margin: 0 auto; padding: 0 16px; }
+  .skip { position: absolute; left: -999px; }
+  .skip:focus { left: 16px; top: 8px; background: var(--surface); padding: 8px 12px; z-index: 10; }
+  header { padding: 40px 0 8px; }
+  .eyebrow { display: inline-block; margin: 0 0 12px; padding: 4px 12px; border-radius: 999px; background: var(--a-soft); color: var(--a); font-size: 13px; font-weight: 600; }
+  h1 { margin: 0 0 8px; font-size: clamp(28px, 6vw, 40px); line-height: 1.1; letter-spacing: -0.02em; }
+  .lede { margin: 0; color: var(--muted); font-size: 18px; }
+  h2 { font-size: 20px; margin: 0 0 8px; }
+  h3 { font-size: 16px; margin: 18px 0 6px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin: 20px 0; }
+  .hint { color: var(--muted); font-size: 15px; margin: 0 0 10px; }
+  .grid { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  label { display: block; font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+  select { width: 100%; font: inherit; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  input[type=range] { width: 100%; }
+  .val { font-weight: 700; color: var(--a); }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .headline { font-size: clamp(22px, 5vw, 30px); font-weight: 800; line-height: 1.2; margin: 0 0 6px; }
+  .split { display: flex; height: 38px; border-radius: 10px; overflow: hidden; margin: 12px 0 6px; font-weight: 700; font-size: 15px; }
+  .split div { display: flex; align-items: center; padding: 0 10px; white-space: nowrap; min-width: 0; }
+  .sa { background: var(--a); color: var(--ink); }
+  .sb { background: var(--b); color: #fff; justify-content: flex-end; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .bars { display: grid; gap: 6px; }
+  .bar { display: grid; grid-template-columns: 56px 1fr 52px; align-items: center; gap: 8px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .bar .track { background: var(--line); border-radius: 6px; height: 16px; overflow: hidden; }
+  .bar .fill { height: 100%; }
+  .fill.a { background: var(--a); } .fill.b { background: var(--b); }
+  .err { background: var(--b-soft); border-radius: 10px; padding: 12px; color: var(--text); }
+  details { margin-top: 10px; } summary { cursor: pointer; font-weight: 600; color: var(--a); }
+  ul { margin: 6px 0; padding-left: 22px; } li { margin: 4px 0; }
+  .disclaimer { font-size: 14px; color: var(--muted); margin: 8px 0 40px; }
+  [hidden] { display: none !important; }
+  @media print { header .lede, #controls, .skip { display: none !important; } body { background: #fff; color: #000; } .card { border: 1px solid #999; break-inside: avoid; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="wrap">
+  <p class="eyebrow">Free &middot; Open &middot; Runs in your browser</p>
+  <h1>WNBA Finals Series Forecaster</h1>
+  <p class="lede">Turn this postseason's scores into team ratings and an exact best-of-7 forecast. Change the assumptions and watch the odds move.</p>
+</header>
+
+<main id="main" class="wrap">
+  <section id="controls" class="card" aria-labelledby="c-h">
+    <h2 id="c-h">1. Set up the series</h2>
+    <p class="hint">Defaults are the 2026 Finals: the Valkyries host games 1, 2, 5 and 7, the Dream host games 3, 4 and 6. Update the series score as games finish.</p>
+    <div class="grid">
+      <div><label for="teamA">Team with home court (games 1, 2, 5, 7)</label><select id="teamA"></select></div>
+      <div><label for="teamB">Opponent</label><select id="teamB"></select></div>
+      <div><label for="winsA">Home-court team's wins so far</label><select id="winsA"></select></div>
+      <div><label for="winsB">Opponent's wins so far</label><select id="winsB"></select></div>
+      <div><label for="homeAdv">Home-court advantage: <span class="val" id="haVal"></span> points</label>
+        <input id="homeAdv" type="range" min="0" max="6" step="0.5" value="2.5"></div>
+      <div><label for="sigma">Game-to-game noise: <span class="val" id="sgVal"></span> points</label>
+        <input id="sigma" type="range" min="7" max="15" step="0.5" value="11"></div>
+    </div>
+    <p class="hint" style="margin-top:12px">Home-court advantage and noise are assumptions, not facts from the data. Try 0 and 5 to see how much the answer depends on them.</p>
+  </section>
+
+  <section id="results" class="card" aria-live="polite" aria-labelledby="r-h">
+    <h2 id="r-h">2. The forecast</h2>
+    <div id="out"></div>
+  </section>
+
+  <section class="card" aria-labelledby="how-h">
+    <h2 id="how-h">How it works, and what it can't do</h2>
+    <ol>
+      <li><b>Ratings.</b> Each team gets a rating in points, fit from the margins of the 16 completed 2026 playoff games. A ridge penalty pulls ratings toward zero, because a team that played 5 games shouldn't be rated like a team that played 60.</li>
+      <li><b>One game.</b> Expected margin = rating gap &plusmn; home-court advantage. The chance of winning is a normal curve around that margin.</li>
+      <li><b>The series.</b> An exact calculation over every path to four wins in the 2-2-1-1-1 format, starting from the current score.</li>
+    </ol>
+    <h3>Limits</h3>
+    <ul>
+      <li>16 games is a tiny sample. In a leave-one-game-out backtest the model did better than a coin flip on probability scoring, but with this few games that is a demonstration of method, not evidence the model is good.</li>
+      <li>It ignores injuries, rest, matchups, and who actually plays. A real forecast would add all of those.</li>
+      <li>Home teams won 12 of these 16 games, which makes the data lean toward a big home edge. The slider lets you override that.</li>
+    </ul>
+    <details><summary>Ratings used (points above or below an average playoff team)</summary><div id="ratings"></div></details>
+    <details><summary>Games used (final scores)</summary><div id="games"></div></details>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p class="disclaimer">An educational project, not betting or financial advice, and not affiliated with the WNBA or any team. Scores are a hand-checked snapshot from public playoff results as of the date shown above in the data file. Built with the help of Claude. Source and tests: see the README.</p>
+</footer>
+
+<script src="data.js"></script>
+<script src="model.js"></script>
+<script>
+(function () {
+  var D = WNBA26, M = WNBAModel;
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, text, cls) { var n = document.createElement(tag); if (text != null) n.textContent = text; if (cls) n.className = cls; return n; }
+  function pct(p) { return (p * 100).toFixed(p < 0.1 || p > 0.9 ? 1 : 0) + "%"; }
+
+  var codes = Object.keys(D.teams).sort(function (a, b) { return D.teams[a].seed - D.teams[b].seed; });
+  ["teamA", "teamB"].forEach(function (id) {
+    codes.forEach(function (c) { var o = el("option", D.teams[c].name + " (seed " + D.teams[c].seed + ")"); o.value = c; $(id).appendChild(o); });
+  });
+  ["winsA", "winsB"].forEach(function (id) { for (var i = 0; i < 4; i++) { var o = el("option", String(i)); o.value = i; $(id).appendChild(o); } });
+  $("teamA").value = "GSV"; $("teamB").value = "ATL";
+
+  function render() {
+    var A = $("teamA").value, B = $("teamB").value;
+    var ha = parseFloat($("homeAdv").value), sg = parseFloat($("sigma").value);
+    var wa = parseInt($("winsA").value, 10), wb = parseInt($("winsB").value, 10);
+    $("haVal").textContent = ha.toFixed(1); $("sgVal").textContent = sg.toFixed(1);
+    var out = $("out"); out.textContent = "";
+    if (A === B) { out.appendChild(el("p", "Pick two different teams.", "err")); return; }
+    var ratings = M.fitRatings(D.games, { homeAdv: ha, lambda: 2 });
+    var p = M.gameProbs(ratings, A, B, ha, sg);
+    var res;
+    try { res = M.seriesOutcome(p, wa, wb, 4); } catch (e) { out.appendChild(el("p", "That series is already decided. Lower one of the win counts.", "err")); return; }
+    var nameA = D.teams[A].name, nameB = D.teams[B].name;
+    var lead = res.pWin >= 0.5 ? nameA : nameB, lp = res.pWin >= 0.5 ? res.pWin : 1 - res.pWin;
+    out.appendChild(el("p", lead + " win the series " + pct(lp) + " of the time", "headline"));
+    out.appendChild(el("p", "Model estimate from 16 playoff games. Expected length: " + res.expectedGames.toFixed(1) + " games.", "hint"));
+    var split = el("div", null, "split"); split.setAttribute("role", "img");
+    split.setAttribute("aria-label", nameA + " " + pct(res.pWin) + ", " + nameB + " " + pct(1 - res.pWin));
+    var sa = el("div", D.teams[A].name.split(" ").pop() + " " + pct(res.pWin), "sa"); sa.style.width = (res.pWin * 100) + "%";
+    var sb = el("div", D.teams[B].name.split(" ").pop() + " " + pct(1 - res.pWin), "sb"); sb.style.width = ((1 - res.pWin) * 100) + "%";
+    split.appendChild(sa); split.appendChild(sb); out.appendChild(split);
+
+    out.appendChild(el("h3", "Chance of each final result"));
+    var bars = el("div", null, "bars");
+    res.outcomes.slice().sort(function (x, y) { return (y.a - y.b) - (x.a - x.b); }).forEach(function (o) {
+      var winner = o.a === 4 ? A : B;
+      var row = el("div", null, "bar");
+      row.appendChild(el("span", o.a + "-" + o.b));
+      var track = el("div", null, "track"); var fill = el("div", null, "fill " + (o.a === 4 ? "a" : "b"));
+      fill.style.width = Math.max(0, o.p * 100 * 2.2) + "%"; track.appendChild(fill); row.appendChild(track);
+      row.appendChild(el("span", pct(o.p)));
+      row.setAttribute("title", D.teams[winner].name + " win " + Math.max(o.a, o.b) + "-" + Math.min(o.a, o.b));
+      bars.appendChild(row);
+    });
+    out.appendChild(bars);
+    out.appendChild(el("p", "Scores read as " + D.teams[A].name.split(" ").pop() + "-" + D.teams[B].name.split(" ").pop() + ".", "hint"));
+
+    out.appendChild(el("h3", "Game by game"));
+    var t = el("table"); var head = el("tr");
+    ["Game", "Host", D.teams[A].name.split(" ").pop() + " win chance"].forEach(function (h, i) { var th = el("th", h); if (i === 2) th.className = "n"; head.appendChild(th); });
+    t.appendChild(head);
+    p.forEach(function (pr, k) {
+      var tr = el("tr"); var played = k < wa + wb;
+      tr.appendChild(el("td", "Game " + (k + 1) + (played ? " (played)" : "")));
+      tr.appendChild(el("td", D.teams[M.HOME_PATTERN[k] ? A : B].name.split(" ").pop()));
+      tr.appendChild(el("td", pct(pr), "n"));
+      if (played) tr.style.opacity = "0.55";
+      t.appendChild(tr);
+    });
+    out.appendChild(t);
+
+    var rt = $("ratings"); rt.textContent = "";
+    var tb = el("table"); var hr = el("tr"); ["Team", "Rating"].forEach(function (h, i) { var th = el("th", h); if (i) th.className = "n"; hr.appendChild(th); }); tb.appendChild(hr);
+    Object.keys(ratings).sort(function (x, y) { return ratings[y] - ratings[x]; }).forEach(function (c) {
+      var tr = el("tr"); tr.appendChild(el("td", D.teams[c].name)); tr.appendChild(el("td", (ratings[c] >= 0 ? "+" : "") + ratings[c].toFixed(1), "n")); tb.appendChild(tr);
+    }); rt.appendChild(tb);
+  }
+
+  var g = $("games"); var gt = el("table"); var gh = el("tr");
+  ["Date", "Round", "Home", "Away"].forEach(function (h) { gh.appendChild(el("th", h)); }); gt.appendChild(gh);
+  D.games.forEach(function (x) {
+    var tr = el("tr"); tr.appendChild(el("td", x.date.slice(5))); tr.appendChild(el("td", x.round));
+    tr.appendChild(el("td", x.home + " " + x.hs)); tr.appendChild(el("td", x.away + " " + x.as)); gt.appendChild(tr);
+  }); g.appendChild(gt);
+
+  ["teamA", "teamB", "winsA", "winsB"].forEach(function (id) { $(id).addEventListener("change", render); });
+  ["homeAdv", "sigma"].forEach(function (id) { $(id).addEventListener("input", render); });
+  render();
+})();
+</script>
+</body>
+</html>
