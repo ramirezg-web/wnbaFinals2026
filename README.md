@@ -12,7 +12,6 @@ Open `index.html`. Nothing to install.
 Tests: `node evals.js` (14 correctness checks, leave-one-game-out backtest, home-advantage sensitivity).
 
 ## Deploy
-Drag this folder onto https://app.netlify.com/drop, or push it to a GitHub repo and enable Pages.
 
 ## Honest limits
 - 16 games is a tiny sample. The backtest (accuracy 0.75, Brier 0.159 vs 0.250 for a coin flip) shows the method works, not that it is a strong predictor. Always picking the home team is equally accurate here.
